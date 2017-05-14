@@ -1,7 +1,7 @@
 import java.util.Scanner;
 
 class FunctionBubble{
-  public static int[] sort(int[] q){
+  public static void[] sort(int[] q){
     for(int i = q.length - 1; i >= 0; i--){
       for(int j = 1; j <= i; j++){
         if(q[j - 1] > q[j]){
@@ -11,7 +11,6 @@ class FunctionBubble{
         }
       }
     }
-    return q;
   }
 
   public static void main(String[] args) {

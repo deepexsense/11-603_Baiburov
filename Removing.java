@@ -14,14 +14,3 @@ class Removing{
       System.out.println(a[i]);
   }
 }
-
-
-2 3 4 5 6 7 8
-
-2 3 5 5 6 7 8
-
-2 3 5 6 6 7 8
-
-2 3 4 6 7 7 8
-
-a[i] = a[i+ 1];
