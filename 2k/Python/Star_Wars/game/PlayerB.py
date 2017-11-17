@@ -64,7 +64,7 @@ class PlayerB(sprite.Sprite):
             x += ME_SIZE // 2 + r + 1
 
         bullet = Bullet(x, y, direction)
-        self.shot_sound = mixer.Sound("Sounds/Shot.ogg")
+        self.shot_sound = mixer.Sound("sounds/Shot.ogg")
         self.shot_sound.play()
         return bullet
 

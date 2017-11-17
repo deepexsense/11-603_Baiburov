@@ -13,8 +13,6 @@ TITLE = Configure.TITLE
 
 
 def printMessage(screen, myfont):
-
-
     textsurface = myfont.render('Game over', False, pygame.Color("#ffffff"), )
     screen.blit(textsurface, (Configure.WIN_WIDTH // 2 - 100, Configure.WIN_HEIGHT // 2))
     pygame.display.update()
@@ -48,7 +46,7 @@ def send(c, dx, dy, direction, target, hp, my_bullets, other_players, other_bull
 # Настройка звука
 pygame.mixer.pre_init(44100, -16, 1, 512)
 pygame.mixer.init()
-sound = pygame.mixer.Sound("Sounds/Fight.ogg")
+sound = pygame.mixer.Sound("sounds/Fight.ogg")
 sound.play()
 
 def main():
@@ -141,6 +139,55 @@ def main():
 
         pygame.display.update()
 
+class Menu:
+    def __init__(self, items = [120, 140, u'=Item', (250, 250, 30), (250, 30, 250), 0]):
+        self.items = items
+    def draw_items(self, background, font, item_number):
+        for i in self.items:
+            if item_number == i[5]:
+                background.blit(font.draw_items(i[2], 1, i[4]), (i[0], i[1]))
+            else:
+                background.blit(font.draw_items(i[2], 1, i[3]), (i[0], i[1]))
+    def menu(self):
+        done = True
+        self.font_menu = pygame.font.init()
+        font_menu = pygame.font.Font("fonts/STARWARS.OTF", 50)
+        item = 0
+        while done:
+            main().screen.fill((0, 100, 200))
+
+            mp = pygame.mouse.get_pos()
+            for i in self.items:
+                if mp[0] > i[0] and mp[0] < i[0] + 155 and mp[1] > i[1] and mp[1] < i[1] + 50:
+                    item = i[5]
+            self.draw_items(main().screen, font_menu, item)
+
+            for e in pygame.event.get():
+                if e.type == pygame.QUIT:
+                    SystemExit("QUIT")
+                if  e.type == pygame.KEYDOWN:
+                    if e.key == pygame.K_ESCAPE:
+                        SystemExit("QUIT")
+                    if e.key == pygame.K_UP:
+                        if item > 0:
+                            item = -1
+                    if e.key == pygame.K_DOWN:
+                        if item < len(self.items)-1:
+                            item += 1
+                if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                    if item == 0:
+                        done = False
+                    elif item == 1:
+                        SystemExit("QUIT")
+
+
+            main().bg.blit(main().screen, (0,0))
+            pygame.display.flip()
+
+items = [(120, 140, u'=Game', (250, 250, 30), (250, 30, 250), 0),
+         (130, 210, u'=Quit', (250, 250, 30), (250, 30, 250), 1)]
+game = Menu(items)
+game.menu()
 
 if __name__ == "__main__":
     main()
