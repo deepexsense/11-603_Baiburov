@@ -1,5 +1,4 @@
 from pygame import Color
-
 TARGET_SIZE = 160
 WIN_WIDTH = 650
 WIN_HEIGHT = 650

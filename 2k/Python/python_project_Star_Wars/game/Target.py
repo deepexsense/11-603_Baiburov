@@ -11,9 +11,8 @@ WIN_WIDTH = Configure.WIN_WIDTH
 WIN_HEIGHT = Configure.WIN_HEIGHT
 
 
-class Target(sprite.Sprite):
+class Target:
     def __init__(self):
-        sprite.Sprite.__init__(self)
         x = WIN_WIDTH // 2
         y = WIN_HEIGHT // 2
 
@@ -23,7 +22,7 @@ class Target(sprite.Sprite):
 
         self.y0 = self.rect.y + TARGET_SIZE // 2
         self.x0 = self.rect.x + TARGET_SIZE // 2
-        self.hp = 99
+        self.hp = 100
 
     def update(self, dx, dy):
         if ((self.rect.x + TARGET_SIZE < WIN_WIDTH - 1 and dx >= 0 or self.rect.x > 1 and dx <= 0) and
@@ -32,10 +31,6 @@ class Target(sprite.Sprite):
             self.rect.y += dy
             self.y0 = self.rect.y + TARGET_SIZE // 2
             self.x0 = self.rect.x + TARGET_SIZE // 2
-
-    def shoot(self, direction):
-        bullet = Bullet(self.x0, self.y0, "U")
-        return bullet
 
     def draw(self, screen, pygame):
         if self.hp > 0:
@@ -70,6 +65,7 @@ class Target(sprite.Sprite):
         for enemy in enemies:
             if sqrt((enemy.x0 - me.x0) ** 2 + (enemy.y0 - me.y0) ** 2) <= ME_SIZE:
                 me.hp = False
+                enemy.hp = False
                 flag = True
 
 

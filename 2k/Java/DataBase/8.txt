@@ -1,0 +1,106 @@
+-- 1. Отобрать всех режиссёров, у которых лучший фильм был снят в 2000 году. 
+-- 2. Вывести всех режиссёров, которые сняли более 5 фильмов.
+-- 3. Отобрать идентификаторы фильмов, где снималось более 10 актёров
+-- 4. Добавить поле оценка в таблицу фильмов. Получить топ-10 фильмов с наивысшей оценкой, снятых в США
+-- 5. Отобрать все различные фильмы ужасов, в которых снимались актёры родом из Англии
+-- 6. Отобрать актеров, которые снимались у режиссёров из Англии с 2007 по 2010 год
+-- 7. Оценить средние бюджеты фильмов, вышедших до 2000 года, с 2000 по 2005, с 2005 по 2010, с 2010 по настоящее время.
+-- 8. Получить суммарный бюджет фильмов, которы снимались режиссёрами, фамилия которых заканчивается на "V" или "N".
+-- 9. Получить максимальные бюджеты фильмов по годам
+-- 10. Получить все фильмы, снятые до 2010 года, бюджет которых меньше бюджета любого фильма снятого после 2010 года.
+-- 11. Получить режиссеров, которые сняли хотя бы один фильм бюджет которого больше минимума бюджета фильмов за 2015 год и меньше максимумального бюджета за 2016 год.
+-- 12. Получить список режиссеров, которые сняли хотя бы один фильи до 2000 года, или которые сняли всего ровно 10 фильмов.
+
+-- 1st task
+SELECT producer.producer_name
+FROM producer
+INNER JOIN movie ON (producer_best_movie_id = movie.movie_id)
+WHERE extract(YEAR FROM movie_year) = 2000;
+
+-- 2nd task
+SELECT movie_producer.producer_id 
+FROM movie_producer
+GROUP BY (movie_producer.producer_id)
+HAVING COUNT(movie_id) > 5;
+
+-- 3rd task
+SELECT movie_actor.movie_id
+FROM movie_actor
+GROUP BY (movie_actor.movie_id)
+HAVING COUNT(movie_actor.actor_id) > 10;
+
+-- 4th task
+SELECT movie_name, movie_rating
+FROM movie
+WHERE movie.movie_country = 'USA'
+ORDER BY movie_rating DESC
+LIMIT 10;
+
+-- 5th task
+SELECT DISTINCT movie.movie_name
+FROM movie
+INNER JOIN movie_genre ON movie.movie_id = movie_genre.movie_id
+INNER JOIN movie_actor ON movie.movie_id = movie_actor.movie_id
+INNER JOIN genre ON genre.genre_id = movie_genre.genre_id
+INNER JOIN actor ON actor.actor_id = movie_actor.actor_id
+WHERE actor.actor_motherland = 'England' AND
+      genre.genre_name = 'Horror';
+
+-- 6th task
+SELECT actor.actor_name, actor.actor_surname
+FROM actor
+INNER JOIN movie_actor ON actor.actor_id = movie_actor.actor_id
+INNER JOIN movie_producer ON movie_producer.movie_id = movie_actor.movie_id
+INNER JOIN producer ON producer.producer_id = movie_producer.producer_id
+INNER JOIN movie ON movie_actor.movie_id = movie.movie_id
+WHERE producer.producer_motherland = 'England' AND
+      EXTRACT(YEAR FROM movie_year) BETWEEN 2007 AND 2010;
+
+-- 7th task
+SELECT avg(table1.movie_budget) AS avg_first,
+       avg(table2.movie_budget) AS avg_second,
+       avg(table3.movie_budget) AS avg_third,
+       avg(table4.movie_budget) AS avg_fourth
+FROM (SELECT movie_budget FROM movie WHERE EXTRACT(YEAR FROM movie_year) < 2000) AS table1,
+     (SELECT movie_budget FROM movie WHERE EXTRACT(YEAR FROM movie_year) BETWEEN 2000 AND 2005) AS table2,
+     (SELECT movie_budget FROM movie WHERE EXTRACT(YEAR FROM movie_year) BETWEEN 2006 AND 2010) AS table3,
+     (SELECT movie_budget FROM movie WHERE EXTRACT(YEAR FROM movie_year) > 2010) AS table4;
+
+-- 8th task
+SELECT sum(movie.movie_budget)
+FROM movie
+INNER JOIN movie_producer ON movie.movie_id = movie_producer.movie_id
+INNER JOIN producer ON movie_producer.producer_id = producer.producer_id
+WHERE producer_surname LIKE '_%n' OR producer_surname LIKE '_%v';
+
+-- 9th task
+SELECT EXTRACT(YEAR FROM movie_year) AS year, 
+       MAX(movie_budget) AS max_budget
+FROM movie
+GROUP BY (year);
+
+-- 10th task
+SELECT my_movies.movie_name
+FROM (SELECT movie_name, movie_budget FROM movie WHERE extract(YEAR FROM movie_year) <= 2010) AS my_movies
+WHERE my_movies.movie_budget < (SELECT min(movie_budget) FROM movie WHERE extract(YEAR FROM movie_year) > 2010);
+
+-- 11th task
+SELECT producer_name
+FROM producer
+INNER JOIN movie_producer ON producer.producer_id = movie_producer.producer_id
+INNER JOIN movie ON movie_producer.movie_id = movie.movie_id
+WHERE movie_budget > (SELECT min(movie_budget) FROM movie WHERE extract(YEAR FROM movie_year) = 2015) AND
+      movie_budget < (SELECT max(movie_budget) FROM movie WHERE extract(YEAR FROM movie_year) = 2016);
+
+-- 12th task
+SELECT DISTINCT producer.producer_id
+FROM producer
+INNER JOIN movie_producer ON producer.producer_id = movie_producer.producer_id
+INNER JOIN movie ON movie_producer.movie_id = movie.movie_id
+WHERE extract(YEAR FROM movie_year) < 2000
+UNION
+SELECT movie_producer.producer_id
+FROM producer
+INNER JOIN movie_producer ON producer.producer_id = movie_producer.producer_id
+GROUP BY (movie_producer.producer_id)
+HAVING count(movie_producer.movie_id) = 10;

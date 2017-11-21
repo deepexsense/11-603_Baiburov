@@ -10,14 +10,13 @@ WIN_HEIGHT = Configure.WIN_HEIGHT
 mixer.pre_init(44100, -16, 1, 512)
 mixer.init()
 
-class PlayerA(sprite.Sprite):
-    def __init__(self, x, y):
-        sprite.Sprite.__init__(self)
+class PlayerA:
+    def __init__(self, x, y, side="red"):
 
-        self.image_u = image.load("sprites/red-u.png")
-        self.image_r = image.load("sprites/red-r.png")
-        self.image_l = image.load("sprites/red-l.png")
-        self.image_d = image.load("sprites/red-d.png")
+        self.image_u = image.load("sprites/%s-u.png" %side)
+        self.image_r = image.load("sprites/%s-r.png" %side)
+        self.image_l = image.load("sprites/%s-l.png" %side)
+        self.image_d = image.load("sprites/%s-d.png" %side)
 
         self.image_u = transform.scale(self.image_u, (ME_SIZE, ME_SIZE))
         self.image_r = transform.scale(self.image_r, (ME_SIZE, ME_SIZE))
@@ -54,6 +53,7 @@ class PlayerA(sprite.Sprite):
         x = self.x0
         y = self.y0
         r = Configure.BULLET_R
+
         if direction == "U":
             y -= ME_SIZE // 2 + r + 1
         elif direction == "D":
