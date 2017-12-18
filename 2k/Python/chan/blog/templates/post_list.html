@@ -1,0 +1,8 @@
+{% block content %}
+    {% for post in object_list %}
+        <p>{{ post.datetime }}</p>
+        <p>{{ post.content }}</p>
+    {% empty %}
+    <p>Нет постов</p>
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,1311 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 9.6rc1
+-- Dumped by pg_dump version 9.6rc1
+
+-- Started on 2016-12-18 16:07:24
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 2283 (class 1262 OID 24843)
+-- Name: videodata; Type: DATABASE; Schema: -; Owner: postgres
+--
+
+CREATE DATABASE videodata WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'Russian_Russia.1251' LC_CTYPE = 'Russian_Russia.1251';
+
+
+ALTER DATABASE videodata OWNER TO postgres;
+
+\connect videodata
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 1 (class 3079 OID 12387)
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- TOC entry 2285 (class 0 OID 0)
+-- Dependencies: 1
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- TOC entry 220 (class 1255 OID 25234)
+-- Name: acceptorder(character varying, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION acceptorder(user_id character varying, film_id integer, f_quantity integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF (SELECT count(*) FROM buy AS b WHERE user_id = (b.buy_id::varchar) and film_id = b.id)>0 THEN
+     IF (SELECT count(*) FROM film_existance WHERE film_id = id)>0 THEN
+        DELETE FROM buy WHERE (buy_id::varchar) = user_id and id = film_id and quantity = f_quantity;
+        UPDATE film_existance SET quantity = quantity + f_quantity WHERE film_id = id;
+        RETURN TRUE;
+     END IF;
+  END IF;
+  RETURN FALSE;
+END;
+$$;
+
+
+ALTER FUNCTION public.acceptorder(user_id character varying, film_id integer, f_quantity integer) OWNER TO postgres;
+
+--
+-- TOC entry 218 (class 1255 OID 25235)
+-- Name: addorder(integer, integer, integer, date, date); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION addorder(film_id integer, user_id integer, f_quantity integer, date1 date, date2 date) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+ IF (SELECT count(*) FROM film_existance WHERE id = film_id and quantity>0 and f_quantity<=quantity)>0 THEN
+	INSERT INTO buy (id,buy_id,start,final,quantity) VALUES (film_id, user_id, date1, date2, f_quantity);
+	UPDATE film_existance SET quantity = quantity - f_quantity WHERE film_id = id;
+	RETURN TRUE;
+	END IF;
+RETURN FALSE;
+END;
+$$;
+
+
+ALTER FUNCTION public.addorder(film_id integer, user_id integer, f_quantity integer, date1 date, date2 date) OWNER TO postgres;
+
+--
+-- TOC entry 221 (class 1255 OID 25252)
+-- Name: films_stamp(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION films_stamp() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+IF (TG_OP = 'UPDATE') THEN
+	IF NEW.film_name IS NULL or NEW.film_name = '' THEN
+RAISE EXCEPTION 'This film name must not NULL';
+END IF;
+IF NEW.film_studio IS NULL THEN
+RAISE EXCEPTION 'This film studio must not NULL';
+END IF;
+IF NEW.film_year>current_date THEN
+RAISE EXCEPTION 'This film year must not over CURRENT_DATE';
+END IF;
+IF NEW.film_producer IS NULL THEN
+RAISE EXCEPTION 'This film producer must not NULL';
+END IF;
+IF length(NEW.description)<10 or length(NEW.description) > 2500 THEN
+RAISE EXCEPTION 'Please correct description length(>10)';
+END IF;
+IF NEW.remark < 0 or NEW.remark > 10 THEN 
+RAISE EXCEPTION 'REMARK should >0 and <10 on update';
+END IF;
+RETURN NEW;
+            ELSE
+IF NEW.film_name IS NULL or NEW.film_name = '' THEN
+RAISE EXCEPTION 'This film name must not NULL';
+END IF;
+IF NEW.film_studio IS NULL THEN
+RAISE EXCEPTION 'This film studio must not NULL';
+END IF;
+IF NEW.film_year>current_date THEN
+RAISE EXCEPTION 'This film year must not over CURRENT_DATE';
+END IF;
+IF NEW.film_producer IS NULL THEN
+RAISE EXCEPTION 'This film producer must not NULL';
+END IF;
+IF length(NEW.description)<10 or length(NEW.description) > 2500 THEN
+RAISE EXCEPTION 'Please correct description length(>10)';
+END IF;
+IF NEW.remark > 0 or NEW.remark < 0 THEN 
+RAISE EXCEPTION 'REMARK should 0 on start';
+END IF;
+END IF;
+RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.films_stamp() OWNER TO postgres;
+
+--
+-- TOC entry 219 (class 1255 OID 25368)
+-- Name: getsearchfilms(text); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION getsearchfilms(nname text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+rec RECORD;
+sm text:='';
+BEGIN
+IF (SELECT count(*) FROM films WHERE position(nname in film_name)>=1)>0 THEN
+	FOR rec in (SELECT id FROM films WHERE position(nname in film_name)>=1) LOOP
+	sm:= sm || rec.id || ' ';
+	END LOOP;
+END IF;
+RETURN sm;
+END;
+$$;
+
+
+ALTER FUNCTION public.getsearchfilms(nname text) OWNER TO postgres;
+
+--
+-- TOC entry 222 (class 1255 OID 25346)
+-- Name: updatefilm(integer, character varying, integer, date, integer, text, integer, text, character varying[], character varying[], integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION updatefilm(nid integer, nname character varying, nstudio integer, nyear date, nproducer integer, ndescription text, nremark integer, nurl text, nroles character varying[], ngenres character varying[], nquantity integer, nprice integer) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+x varchar(50);
+y varchar(50);
+exceptions varchar(100):='';
+BEGIN
+IF (SELECT count(*) FROM films WHERE id = nid)= 1 THEN
+  UPDATE films SET (film_name,film_studio,film_year,film_producer,description,remark,img_url) = (nname,nstudio,nyear,nproducer,ndescription,nremark,nurl) WHERE id = nid;
+  DELETE FROM roles_films WHERE film_id = nid;
+  FOREACH x IN ARRAY nroles
+  LOOP
+	IF (SELECT count(*) FROM roles WHERE x = role_name)=1 THEN
+		INSERT INTO roles_films (role_id,film_id) VALUES ((SELECT roles.id FROM roles WHERE x = role_name),nid);
+	ELSE 
+		exceptions := exceptions || 'This role is not found ' || x || '<br>';
+	END IF;
+  END LOOP;
+  DELETE FROM genres_films WHERE film_id = nid;
+  FOREACH y IN ARRAY ngenres
+  LOOP
+	IF (SELECT count(*) FROM genres WHERE y = genre_name)=1 THEN
+		INSERT INTO genres_films (genre_id,film_id) VALUES ((SELECT genres.id FROM genres WHERE y = genre_name),nid);
+		ELSE 
+		exceptions := exceptions || 'This genre is not found ' || y || '<br>';
+	END IF;
+  END LOOP;
+  DELETE FROM film_existance WHERE id = nid;
+  INSERT INTO film_existance (id,quantity,price) VALUES (nid,nquantity,nprice);
+ELSE
+	RAISE NOTICE 'Film not found!';
+  END IF;
+  RETURN exceptions;
+END;
+$$;
+
+
+ALTER FUNCTION public.updatefilm(nid integer, nname character varying, nstudio integer, nyear date, nproducer integer, ndescription text, nremark integer, nurl text, nroles character varying[], ngenres character varying[], nquantity integer, nprice integer) OWNER TO postgres;
+
+--
+-- TOC entry 217 (class 1255 OID 25271)
+-- Name: updateorder(integer, character varying, integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION updateorder(film_id_n integer, user_id_n character varying, remark_n integer) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  INSERT INTO remarks (film_id, user_id, rem) VALUES (film_id_n, user_id_n, remark_n);
+  UPDATE films SET remark = (SELECT sum(rem) FROM remarks WHERE film_id = film_id_n)/(SELECT count(*) FROM remarks WHERE film_id = film_id_n) WHERE id=film_id_n ;
+END;
+$$;
+
+
+ALTER FUNCTION public.updateorder(film_id_n integer, user_id_n character varying, remark_n integer) OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- TOC entry 202 (class 1259 OID 25116)
+-- Name: buy; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE buy (
+    buy_id integer NOT NULL,
+    id integer NOT NULL,
+    start date NOT NULL,
+    final date NOT NULL,
+    quantity integer NOT NULL
+);
+
+
+ALTER TABLE buy OWNER TO postgres;
+
+--
+-- TOC entry 201 (class 1259 OID 25114)
+-- Name: buy_buy_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE buy_buy_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE buy_buy_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 2286 (class 0 OID 0)
+-- Dependencies: 201
+-- Name: buy_buy_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE buy_buy_id_seq OWNED BY buy.buy_id;
+
+
+--
+-- TOC entry 199 (class 1259 OID 25073)
+-- Name: comments; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE comments (
+    film_id integer NOT NULL,
+    comment character varying(500) NOT NULL,
+    comment_data date NOT NULL,
+    user_id character varying(30) NOT NULL,
+    user_login character varying(30)
+);
+
+
+ALTER TABLE comments OWNER TO postgres;
+
+--
+-- TOC entry 186 (class 1259 OID 24855)
+-- Name: cookies; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE cookies (
+    id character varying(30) NOT NULL,
+    token character varying(30) NOT NULL
+);
+
+
+ALTER TABLE cookies OWNER TO postgres;
+
+--
+-- TOC entry 200 (class 1259 OID 25093)
+-- Name: film_existance; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE film_existance (
+    id integer NOT NULL,
+    quantity integer NOT NULL,
+    price integer NOT NULL,
+    CONSTRAINT film_existance_price_check CHECK ((price >= 0)),
+    CONSTRAINT film_existance_quantity_check CHECK ((quantity >= 0))
+);
+
+
+ALTER TABLE film_existance OWNER TO postgres;
+
+--
+-- TOC entry 196 (class 1259 OID 24971)
+-- Name: films; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE films (
+    id integer NOT NULL,
+    film_name character varying(50) NOT NULL,
+    film_studio integer NOT NULL,
+    film_year date NOT NULL,
+    film_producer integer NOT NULL,
+    description text,
+    remark integer,
+    img_url text,
+    CONSTRAINT films_remark_check CHECK (((remark >= 0) AND (remark <= 10)))
+);
+
+
+ALTER TABLE films OWNER TO postgres;
+
+--
+-- TOC entry 195 (class 1259 OID 24969)
+-- Name: films_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE films_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE films_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 2287 (class 0 OID 0)
+-- Dependencies: 195
+-- Name: films_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE films_id_seq OWNED BY films.id;
+
+
+--
+-- TOC entry 191 (class 1259 OID 24905)
+-- Name: genres; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE genres (
+    id integer NOT NULL,
+    genre_name character varying(30) NOT NULL,
+    CONSTRAINT genre_name_cons CHECK ((length((genre_name)::text) > 2))
+);
+
+
+ALTER TABLE genres OWNER TO postgres;
+
+--
+-- TOC entry 198 (class 1259 OID 25035)
+-- Name: genres_films; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE genres_films (
+    genre_id integer NOT NULL,
+    film_id integer NOT NULL
+);
+
+
+ALTER TABLE genres_films OWNER TO postgres;
+
+--
+-- TOC entry 190 (class 1259 OID 24903)
+-- Name: genres_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE genres_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE genres_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 2288 (class 0 OID 0)
+-- Dependencies: 190
+-- Name: genres_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE genres_id_seq OWNED BY genres.id;
+
+
+--
+-- TOC entry 185 (class 1259 OID 24844)
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE users (
+    id character varying(30) NOT NULL,
+    user_name character varying(30),
+    login character varying(30) NOT NULL,
+    is_admin boolean DEFAULT false,
+    user_password character varying(50),
+    image bytea,
+    CONSTRAINT user_login CHECK ((length((login)::text) > 2)),
+    CONSTRAINT user_name CHECK ((length((user_name)::text) > 2))
+);
+
+
+ALTER TABLE users OWNER TO postgres;
+
+--
+-- TOC entry 203 (class 1259 OID 25224)
+-- Name: getallbuys; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW getallbuys AS
+ SELECT u.user_name,
+    f.film_name,
+    b.start,
+    b.final,
+    b.quantity,
+    u.id AS user_id,
+    f.id AS film_id
+   FROM buy b,
+    users u,
+    films f
+  WHERE ((b.buy_id = (u.id)::integer) AND (u.is_admin = false) AND (b.id = f.id));
+
+
+ALTER TABLE getallbuys OWNER TO postgres;
+
+--
+-- TOC entry 187 (class 1259 OID 24878)
+-- Name: producers; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE producers (
+    producer_name character varying(30) NOT NULL,
+    id integer NOT NULL,
+    CONSTRAINT producer_name_cons CHECK ((length((producer_name)::text) > 2))
+);
+
+
+ALTER TABLE producers OWNER TO postgres;
+
+--
+-- TOC entry 193 (class 1259 OID 24949)
+-- Name: producers_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE producers_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE producers_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 2289 (class 0 OID 0)
+-- Dependencies: 193
+-- Name: producers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE producers_id_seq OWNED BY producers.id;
+
+
+--
+-- TOC entry 204 (class 1259 OID 25256)
+-- Name: remarks; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE remarks (
+    film_id integer NOT NULL,
+    user_id character varying(30) NOT NULL,
+    rem integer,
+    CONSTRAINT remarks_rem_check CHECK (((rem <= 10) AND (rem >= 0)))
+);
+
+
+ALTER TABLE remarks OWNER TO postgres;
+
+--
+-- TOC entry 189 (class 1259 OID 24889)
+-- Name: roles; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE roles (
+    id integer NOT NULL,
+    role_name character varying(30) NOT NULL,
+    CONSTRAINT producer_name_cons CHECK ((length((role_name)::text) > 2))
+);
+
+
+ALTER TABLE roles OWNER TO postgres;
+
+--
+-- TOC entry 197 (class 1259 OID 25013)
+-- Name: roles_films; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE roles_films (
+    role_id integer NOT NULL,
+    film_id integer NOT NULL
+);
+
+
+ALTER TABLE roles_films OWNER TO postgres;
+
+--
+-- TOC entry 188 (class 1259 OID 24887)
+-- Name: roles_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE roles_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE roles_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 2290 (class 0 OID 0)
+-- Dependencies: 188
+-- Name: roles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE roles_id_seq OWNED BY roles.id;
+
+
+--
+-- TOC entry 192 (class 1259 OID 24914)
+-- Name: studios; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE studios (
+    studio_name character varying(30) NOT NULL,
+    id integer NOT NULL,
+    CONSTRAINT studios_name_cons CHECK ((length((studio_name)::text) > 2))
+);
+
+
+ALTER TABLE studios OWNER TO postgres;
+
+--
+-- TOC entry 194 (class 1259 OID 24959)
+-- Name: studios_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE studios_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE studios_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 2291 (class 0 OID 0)
+-- Dependencies: 194
+-- Name: studios_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE studios_id_seq OWNED BY studios.id;
+
+
+--
+-- TOC entry 2088 (class 2604 OID 25119)
+-- Name: buy buy_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY buy ALTER COLUMN buy_id SET DEFAULT nextval('buy_buy_id_seq'::regclass);
+
+
+--
+-- TOC entry 2084 (class 2604 OID 24974)
+-- Name: films id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY films ALTER COLUMN id SET DEFAULT nextval('films_id_seq'::regclass);
+
+
+--
+-- TOC entry 2080 (class 2604 OID 24908)
+-- Name: genres id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY genres ALTER COLUMN id SET DEFAULT nextval('genres_id_seq'::regclass);
+
+
+--
+-- TOC entry 2076 (class 2604 OID 24951)
+-- Name: producers id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY producers ALTER COLUMN id SET DEFAULT nextval('producers_id_seq'::regclass);
+
+
+--
+-- TOC entry 2078 (class 2604 OID 24892)
+-- Name: roles id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY roles ALTER COLUMN id SET DEFAULT nextval('roles_id_seq'::regclass);
+
+
+--
+-- TOC entry 2082 (class 2604 OID 24961)
+-- Name: studios id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY studios ALTER COLUMN id SET DEFAULT nextval('studios_id_seq'::regclass);
+
+
+--
+-- TOC entry 2277 (class 0 OID 25116)
+-- Dependencies: 202
+-- Data for Name: buy; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY buy (buy_id, id, start, final, quantity) FROM stdin;
+2	38	2016-12-18	2016-12-25	3
+2	90	2016-12-18	2016-12-25	1
+\.
+
+
+--
+-- TOC entry 2292 (class 0 OID 0)
+-- Dependencies: 201
+-- Name: buy_buy_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('buy_buy_id_seq', 1, false);
+
+
+--
+-- TOC entry 2274 (class 0 OID 25073)
+-- Dependencies: 199
+-- Data for Name: comments; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY comments (film_id, comment, comment_data, user_id, user_login) FROM stdin;
+22	Privet	2016-11-11	1	timur
+22	Hi! Film is good!	2016-11-28	2	rustem
+31	Amazing!!! admin you're best!<3	2016-12-09	1	timur
+38	Wacka Flocka	2016-12-17	1	timur
+90	Oh my god!	2016-12-18	2	rustem
+\.
+
+
+--
+-- TOC entry 2261 (class 0 OID 24855)
+-- Dependencies: 186
+-- Data for Name: cookies; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY cookies (id, token) FROM stdin;
+1	[B@1adf2778
+1	[B@1e7450a3
+1	[B@6f752035
+1	[B@ce9d98e
+1	[B@3d63719f
+1	[B@58e7efab
+\.
+
+
+--
+-- TOC entry 2275 (class 0 OID 25093)
+-- Dependencies: 200
+-- Data for Name: film_existance; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY film_existance (id, quantity, price) FROM stdin;
+31	34	221
+38	19	130
+90	9	400
+91	2	120
+93	100	100
+94	30	1000
+95	10	87
+96	12	23
+\.
+
+
+--
+-- TOC entry 2271 (class 0 OID 24971)
+-- Dependencies: 196
+-- Data for Name: films; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY films (id, film_name, film_studio, film_year, film_producer, description, remark, img_url) FROM stdin;
+91	Dark man	7	2008-06-12	8	Set within a year after the events of Batman Begins, Batman, Lieutenant James Gordon, and new district attorney Harvey Dent successfully begin to round up the criminals that plague Gotham City until a mysterious and sadistic criminal mastermind known only as the Joker appears in Gotham, creating a new wave of chaos. Batman's struggle against the Joker becomes deeply personal, forcing him to "confront everything he believes" and improve his technology to stop him. A love triangle develops between Bruce Wayne, Dent and Rachel Dawes.	0	https://images-na.ssl-images-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_UX182_CR0,0,182,268_AL_.jpg
+92	12 Angry Mens	1	1957-06-11	9	The defense and the prosecution have rested and the jury is filing into the jury room to decide if a young man is guilty or innocent of murdering his father. What begins as an open-and-shut case of murder soon becomes a detective story that presents a succession of clues creating doubt, and a mini-drama of each of the jurors' prejudices and preconceptions about the trial, the accused, and each other. Based on the play, all of the action takes place on the stage of the jury room.	0	https://images-na.ssl-images-amazon.com/images/M/MV5BODQwOTc5MDM2N15BMl5BanBnXkFtZTcwODQxNTEzNA@@._V1_UX182_CR0,0,182,268_AL_.jpg
+93	Schindler list	7	1997-02-11	10	Oskar Schindler is a vainglorious and greedy German businessman who becomes an unlikely humanitarian amid the barbaric German Nazi reign when he feels compelled to turn his factory into a refuge for Jews. Based on the true story of Oskar Schindler who managed to save about 1100 Jews from being gassed at the Auschwitz concentration camp, it is a testament to the good in all of us.	0	https://images-na.ssl-images-amazon.com/images/M/MV5BMzMwMTM4MDU2N15BMl5BanBnXkFtZTgwMzQ0MjMxMDE@._V1_UX182_CR0,0,182,268_AL_.jpg
+94	Criminal garbage	3	1995-06-06	1	Jules Winnfield (Samuel L. Jackson) and Vincent Vega (John Travolta) are two hit men who are out to retrieve a suitcase stolen from their employer, mob boss Marsellus Wallace (Ving Rhames). Wallace has also asked Vincent to take his wife Mia (Uma Thurman) out a few days later when Wallace himself will be out of town. Butch Coolidge (Bruce Willis) is an aging boxer who is paid by Wallace to lose his weight. The lives of these seemingly unrelated people are woven together comprising of a series of funny, bizarre and uncalled-for incidents.	0	https://images-na.ssl-images-amazon.com/images/M/MV5BMTkxMTA5OTAzMl5BMl5BanBnXkFtZTgwNjA5MDc3NjE@._V1_UX182_CR0,0,182,268_AL_.jpg
+95	Fight club	3	2010-02-03	12	A nameless first person narrator (Edward Norton) attends support groups in attempt to subdue his emotional state and relieve his insomniac state. When he meets Marla (Helena Bonham Carter), another fake attendee of support groups, his life seems to become a little more bearable. However when he associates himself with Tyler (Brad Pitt) he is dragged into an underground fight club and soap making scheme. Together the two men spiral out of control and engage in competitive rivalry for love and power. When the narrator is exposed to the hidden agenda of Tyler's fight club, he must accept the awful truth that Tyler may not be who he says he is.	0	https://images-na.ssl-images-amazon.com/images/M/MV5BMzc1YmU2ZjEtYWIwMC00ZjM3LWI0NTctMDVlNGQ3YmYwMzE5XkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_UY268_CR3,0,182,268_AL_.jpg
+22	The Shawshank Redemption	3	1994-09-10	2	In 1947 Portland, Maine, banker Andy Dufresne is convicted of murdering his wife and her lover, and is sentenced to two consecutive life sentences at the Shawshank State Penitentiary. Andy is befriended by contraband smuggler, Ellis "Red" Redding, an inmate serving a life sentence. Red procures a rock hammer and later a large poster of Rita Hayworth for Andy. Working in the prison laundry, Andy is regularly assaulted by "the Sisters" and their leader, Bogs.  In 1949, Andy overhears the captain of the guards, Byron Hadley, complaining about being taxed on an inheritance, and offers to help him legally shelter the money. After an assault by the Sisters nearly kills Andy, Hadley beats Bogs severely. Bogs is then transferred to another prison. Warden Samuel Norton meets Andy and reassigns him to the prison library to assist elderly inmate Brooks Hatlen. Andy's new job is a pretext for him to begin managing financial matters for the prison employees. As time passes, the Warden begins using Andy to handle matters for a variety of people, including guards from other prisons and the warden himself. Andy begins writing weekly letters asking the state government for funds to improve the decaying library...	9	https://st.kp.yandex.net/images/film_big/326.jpg
+96	Forest Gump	1	2005-08-11	13	Forrest Gump is a simple man with a low I.Q. but good intentions. He is running through childhood with his best and only friend Jenny. His 'mama' teaches him the ways of life and leaves him to choose his destiny. Forrest joins the army for service in Vietnam, finding new friends called Dan and Bubba, he wins medals, creates a famous shrimp fishing fleet, inspires people to jog, starts a ping-pong craze, creates the smiley, writes bumper stickers and songs, donates to people and meets the president several times. However, this is all irrelevant to Forrest who can only think of his childhood sweetheart Jenny Curran, who has messed up her life. Although in the end all he wants to prove is that anyone can love anyone.	0	https://images-na.ssl-images-amazon.com/images/M/MV5BYThjM2MwZGMtMzg3Ny00NGRkLWE4M2EtYTBiNWMzOTY0YTI4XkEyXkFqcGdeQXVyNDYyMDk5MTU@._V1_UY268_CR10,0,182,268_AL_.jpg
+38	The Green Mile	3	2016-12-10	2	Convicted of a terrible crime, John Coffey is on death row in a prison block 	6	https://st.kp.yandex.net/images/film_iphone/iphone360_435.jpg
+31	Star Wars: VIII	4	2016-12-17	3	Star Wars. VIII (English Star Wars:. Episode VIII) - the planned eighth feature film main saga	10	http://img.cinemablend.com/cb/d/d/2/1/3/6/dd2136507ee67d7a5e6494796e514f1b73f89d4ed7f861ffd5f1d4fe04d78a27.jpg
+90	Star Wars: Outlaw	4	2016-12-08	6	The Rebel Alliance makes a risky move to steal the plans for the Death Star, setting up the epic saga to follow.	7	https://images-na.ssl-images-amazon.com/images/M/MV5BMjEwMzMxODIzOV5BMl5BanBnXkFtZTgwNzg3OTAzMDI@._V1_UX182_CR0,0,182,268_AL_.jpg
+\.
+
+
+--
+-- TOC entry 2293 (class 0 OID 0)
+-- Dependencies: 195
+-- Name: films_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('films_id_seq', 96, true);
+
+
+--
+-- TOC entry 2266 (class 0 OID 24905)
+-- Dependencies: 191
+-- Data for Name: genres; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY genres (id, genre_name) FROM stdin;
+4	Thriller
+5	Drama
+6	Comedy
+1	Fantastic
+7	Criminal
+8	Cry
+10	Action
+11	Crime
+12	Biography
+14	History
+\.
+
+
+--
+-- TOC entry 2273 (class 0 OID 25035)
+-- Dependencies: 198
+-- Data for Name: genres_films; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY genres_films (genre_id, film_id) FROM stdin;
+7	22
+5	22
+5	38
+1	38
+1	31
+5	31
+1	90
+10	91
+11	91
+5	91
+4	91
+11	92
+5	92
+12	93
+5	93
+14	93
+11	94
+5	94
+5	95
+6	96
+5	96
+\.
+
+
+--
+-- TOC entry 2294 (class 0 OID 0)
+-- Dependencies: 190
+-- Name: genres_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('genres_id_seq', 14, true);
+
+
+--
+-- TOC entry 2262 (class 0 OID 24878)
+-- Dependencies: 187
+-- Data for Name: producers; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY producers (producer_name, id) FROM stdin;
+Quentin Tarantino	1
+Frank Darabont	2
+Rian Johnson	3
+Gareth Edwards	6
+Christopher Nolan	8
+Sidney Lumet	9
+Steven Spielberg	10
+David Fincher	12
+Robert Zemeckis	13
+\.
+
+
+--
+-- TOC entry 2295 (class 0 OID 0)
+-- Dependencies: 193
+-- Name: producers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('producers_id_seq', 13, true);
+
+
+--
+-- TOC entry 2278 (class 0 OID 25256)
+-- Dependencies: 204
+-- Data for Name: remarks; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY remarks (film_id, user_id, rem) FROM stdin;
+38	2	10
+38	1	3
+90	2	7
+\.
+
+
+--
+-- TOC entry 2264 (class 0 OID 24889)
+-- Dependencies: 189
+-- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY roles (id, role_name) FROM stdin;
+1	Leonardo Dicaprio
+2	First Role
+3	Second Role
+4	Third Role
+5	Major Payn
+7	Tim Robbins
+8	Morgan Freeman
+9	Bob Ganton
+10	Ulliam Sendler
+11	Daisy Ridley
+13	Adam Driver
+14	Carrie Fisher
+15	Tom Hanks
+16	David Morse
+17	Michael Clarke Duncan
+18	Bonnie Hunt
+19	Felicity Jones
+26	Diego Luna
+27	Alan Tudyk
+28	Christian Bale
+29	Heath Ledger
+30	Aaron Eckhart
+31	Henry Fonda
+32	Lee J. Cobb
+33	Martin Balsam
+36	Liam Neeson
+37	Ralph Fiennes
+38	Ben Kingsley
+39	John Travolta
+40	Uma Thurman
+41	Samuel L. Jackson
+42	Brad Pitt
+43	Edward Norton
+44	Meat Loaf
+46	Robin Wright
+47	Gary Sinise
+\.
+
+
+--
+-- TOC entry 2272 (class 0 OID 25013)
+-- Dependencies: 197
+-- Data for Name: roles_films; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY roles_films (role_id, film_id) FROM stdin;
+11	31
+13	31
+14	31
+27	90
+26	90
+19	90
+28	91
+29	91
+30	91
+31	92
+32	92
+33	92
+36	93
+37	93
+38	93
+39	94
+40	94
+41	94
+42	95
+7	22
+8	22
+9	22
+10	22
+43	95
+44	95
+15	96
+46	96
+47	96
+15	38
+16	38
+17	38
+18	38
+\.
+
+
+--
+-- TOC entry 2296 (class 0 OID 0)
+-- Dependencies: 188
+-- Name: roles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('roles_id_seq', 47, true);
+
+
+--
+-- TOC entry 2267 (class 0 OID 24914)
+-- Dependencies: 192
+-- Data for Name: studios; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY studios (studio_name, id) FROM stdin;
+Fox	1
+Sony	3
+LucasFilms	4
+Pixart	6
+Paramount	7
+\.
+
+
+--
+-- TOC entry 2297 (class 0 OID 0)
+-- Dependencies: 194
+-- Name: studios_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('studios_id_seq', 7, true);
+
+
+--
+-- TOC entry 2260 (class 0 OID 24844)
+-- Dependencies: 185
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY users (id, user_name, login, is_admin, user_password, image) FROM stdin;
+2	Rustem	rustem	f	21232f297a57a5a743894a0e4a801fc3	\N
+1	Timur Mardanov	timur	t	21232f297a57a5a743894a0e4a801fc3	\N
+-1006985896	Timur	jax02	f	22d7fe8c185003c98f97e5d6ced420c7	\N
+-1800212557	Ivan	ivan	f	2c42e5cf1cdbafea04ed267018ef1511	\N
+498481712	Ivan Shevyakov	ivan228	f	e10adc3949ba59abbe56e057f20f883e	\N
+-89927814	maxim	morjonan	f	202cb962ac59075b964b07152d234b70	\N
+983847906	}}}}}';;;;	}}}}}';;;;	f	9d069ec5a21d160cfee59e040d5d5ef7	\N
+1648175986	TIMURCHIRTAKOINYASH	gav	f	202cb962ac59075b964b07152d234b70	\N
+512406506	Aaaaa	aaaaa	f	5f4dcc3b5aa765d61d8327deb882cf99	\N
+-1841924081	Adidas	adidas	f	28a34010e84b881fb087359c7e280a08	\N
+834046711	Ayrat	TvoyaMamka	f	a570738af5acf5e2ebeedc9143578d2b	\N
+-1564594609	Ymy	ymy123	f	21232f297a57a5a743894a0e4a801fc3	\N
+-790983135	dasdasd	qwqqqqwq	f	962012d09b8170d912f0669f6d7d9d07	\N
+\.
+
+
+--
+-- TOC entry 2113 (class 2606 OID 24982)
+-- Name: films films_description_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY films
+    ADD CONSTRAINT films_description_key UNIQUE (description);
+
+
+--
+-- TOC entry 2115 (class 2606 OID 25012)
+-- Name: films films_id_cons; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY films
+    ADD CONSTRAINT films_id_cons UNIQUE (id);
+
+
+--
+-- TOC entry 2123 (class 2606 OID 25039)
+-- Name: genres_films genres_films_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY genres_films
+    ADD CONSTRAINT genres_films_pkey PRIMARY KEY (genre_id, film_id);
+
+
+--
+-- TOC entry 2105 (class 2606 OID 24911)
+-- Name: genres genres_genre_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY genres
+    ADD CONSTRAINT genres_genre_name_key UNIQUE (genre_name);
+
+
+--
+-- TOC entry 2107 (class 2606 OID 25034)
+-- Name: genres genres_id_cons; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY genres
+    ADD CONSTRAINT genres_id_cons UNIQUE (id);
+
+
+--
+-- TOC entry 2091 (class 2606 OID 24854)
+-- Name: users login_uniq; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY users
+    ADD CONSTRAINT login_uniq UNIQUE (login);
+
+
+--
+-- TOC entry 2119 (class 2606 OID 24980)
+-- Name: films one_film_one_producer; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY films
+    ADD CONSTRAINT one_film_one_producer PRIMARY KEY (film_name, film_producer);
+
+
+--
+-- TOC entry 2127 (class 2606 OID 25260)
+-- Name: remarks pk_cons; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY remarks
+    ADD CONSTRAINT pk_cons PRIMARY KEY (user_id, film_id);
+
+
+--
+-- TOC entry 2125 (class 2606 OID 25113)
+-- Name: film_existance pkey_id; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY film_existance
+    ADD CONSTRAINT pkey_id PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2097 (class 2606 OID 24953)
+-- Name: producers producers_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY producers
+    ADD CONSTRAINT producers_id_key UNIQUE (id);
+
+
+--
+-- TOC entry 2099 (class 2606 OID 24886)
+-- Name: producers producers_producer_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY producers
+    ADD CONSTRAINT producers_producer_name_key UNIQUE (producer_name);
+
+
+--
+-- TOC entry 2121 (class 2606 OID 25017)
+-- Name: roles_films roles_films_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY roles_films
+    ADD CONSTRAINT roles_films_pkey PRIMARY KEY (role_id, film_id);
+
+
+--
+-- TOC entry 2101 (class 2606 OID 25000)
+-- Name: roles roles_id_uniq; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY roles
+    ADD CONSTRAINT roles_id_uniq UNIQUE (id);
+
+
+--
+-- TOC entry 2103 (class 2606 OID 24895)
+-- Name: roles roles_role_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY roles
+    ADD CONSTRAINT roles_role_name_key UNIQUE (role_name);
+
+
+--
+-- TOC entry 2109 (class 2606 OID 24963)
+-- Name: studios studios_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY studios
+    ADD CONSTRAINT studios_id_key UNIQUE (id);
+
+
+--
+-- TOC entry 2111 (class 2606 OID 24920)
+-- Name: studios studios_studio_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY studios
+    ADD CONSTRAINT studios_studio_name_key UNIQUE (studio_name);
+
+
+--
+-- TOC entry 2095 (class 2606 OID 24875)
+-- Name: cookies token_uniq; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY cookies
+    ADD CONSTRAINT token_uniq UNIQUE (token);
+
+
+--
+-- TOC entry 2093 (class 2606 OID 24852)
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2116 (class 1259 OID 25362)
+-- Name: id_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX id_idx ON films USING btree (id);
+
+
+--
+-- TOC entry 2117 (class 1259 OID 25251)
+-- Name: name_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX name_idx ON films USING btree (film_name);
+
+
+--
+-- TOC entry 2141 (class 2620 OID 25253)
+-- Name: films films_stamp; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER films_stamp BEFORE INSERT OR UPDATE ON films FOR EACH ROW EXECUTE PROCEDURE films_stamp();
+
+
+--
+-- TOC entry 2138 (class 2606 OID 25120)
+-- Name: buy buy_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY buy
+    ADD CONSTRAINT buy_id_fkey FOREIGN KEY (id) REFERENCES film_existance(id);
+
+
+--
+-- TOC entry 2136 (class 2606 OID 25357)
+-- Name: comments film_cons; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY comments
+    ADD CONSTRAINT film_cons FOREIGN KEY (film_id) REFERENCES films(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2137 (class 2606 OID 25326)
+-- Name: film_existance film_existance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY film_existance
+    ADD CONSTRAINT film_existance_id_fkey FOREIGN KEY (id) REFERENCES films(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2133 (class 2606 OID 25341)
+-- Name: genres_films genres_films_film_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY genres_films
+    ADD CONSTRAINT genres_films_film_id_fkey FOREIGN KEY (film_id) REFERENCES films(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2134 (class 2606 OID 25369)
+-- Name: genres_films genres_films_genre_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY genres_films
+    ADD CONSTRAINT genres_films_genre_id_fkey FOREIGN KEY (genre_id) REFERENCES genres(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2128 (class 2606 OID 24869)
+-- Name: cookies id_idusers; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY cookies
+    ADD CONSTRAINT id_idusers FOREIGN KEY (id) REFERENCES users(id) MATCH FULL;
+
+
+--
+-- TOC entry 2129 (class 2606 OID 25374)
+-- Name: films ref_film_producer_id; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY films
+    ADD CONSTRAINT ref_film_producer_id FOREIGN KEY (film_producer) REFERENCES producers(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2130 (class 2606 OID 25379)
+-- Name: films ref_film_studio_id; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY films
+    ADD CONSTRAINT ref_film_studio_id FOREIGN KEY (film_studio) REFERENCES studios(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2140 (class 2606 OID 25347)
+-- Name: remarks remarks_film_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY remarks
+    ADD CONSTRAINT remarks_film_id_fkey FOREIGN KEY (film_id) REFERENCES films(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2139 (class 2606 OID 25266)
+-- Name: remarks remarks_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY remarks
+    ADD CONSTRAINT remarks_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2131 (class 2606 OID 25331)
+-- Name: roles_films roles_films_film_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY roles_films
+    ADD CONSTRAINT roles_films_film_id_fkey FOREIGN KEY (film_id) REFERENCES films(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2132 (class 2606 OID 25352)
+-- Name: roles_films roles_films_role_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY roles_films
+    ADD CONSTRAINT roles_films_role_id_fkey FOREIGN KEY (role_id) REFERENCES roles(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2135 (class 2606 OID 25084)
+-- Name: comments user_cons; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY comments
+    ADD CONSTRAINT user_cons FOREIGN KEY (user_id) REFERENCES users(id);
+
+
+-- Completed on 2016-12-18 16:07:27
+
+--
+-- PostgreSQL database dump complete
+--
+
