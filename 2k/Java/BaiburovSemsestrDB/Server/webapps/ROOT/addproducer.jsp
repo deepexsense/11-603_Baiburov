@@ -1,10 +1,4 @@
-<%@ page import="ru.itis.inform.models.Producer" %><%--
-  Created by IntelliJ IDEA.
-  User: Тимур
-  Date: 25.10.2016
-  Time: 23:49
-  To change this template use File | Settings | File Templates.
---%>
+<%@ page import="ru.itis.inform.models.Producer" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <body>
@@ -15,7 +9,7 @@
         <h2>Add producer</h2>
     </div>
     <p>
-        <input type="text" name="name" class="input-block-level" id="addfilmfields" placeholder="Name">
+        <input type="text" name="name" class="input-block-level" id="addfilmfields" placeholder="Name" maxlength="10">
         <br>
         <button class="btn btn-large btn-primary" type="submit">Add</button>
             <% if (request.getAttribute("no")!=null) {%>

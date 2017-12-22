@@ -1,10 +1,3 @@
-<%--
-  Created by IntelliJ IDEA.
-  User: Тимур
-  Date: 12.11.2016
-  Time: 17:50
-  To change this template use File | Settings | File Templates.
---%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <c:set var="name" value="${film_name}" scope="request"/>
@@ -29,7 +22,7 @@
             <input type="number" id="card" name="card">
             <br>
             <label class="label" for="quantity" style="color:black" >Quantity: </label>
-            <input type="number" id="quantity" name="quantity">
+            <input type="number" id="quantity" name="quantity" >
             <br>
             <button class="btn btn-lg btn-primary btn-block" type="submit">Buy</button>
         </form>

@@ -30,9 +30,9 @@
     <form class="form-signin" action="/login" method="POST">
         <h1 align="center" class="form-signin-heading" style="font-family: 'sans-serif', cursive;">Sign in</h1>
         <label for="inputEmail" class="sr-only">Login</label>
-        <input name="login" type="text" id="inputEmail" class="form-control" placeholder="Login" value="<% if (request.getAttribute("incorrect_password") != null) {%><%=request.getAttribute("login")%><%}%>" required autofocus>
+        <input name="login" type="text" id="inputEmail" class="form-control" placeholder="Login" value="<% if (request.getAttribute("incorrect_password") != null) {%><%=request.getAttribute("login")%><%}%>" required autofocus maxlength="10">
         <label for="inputPassword" class="sr-only">Password</label>
-        <input name="password" type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+        <input name="password" type="password" id="inputPassword" class="form-control" placeholder="Password" required maxlength="10">
         <div class="checkbox">
             <label>
                 <input name="cookie" type="checkbox" value="true"> Remember me

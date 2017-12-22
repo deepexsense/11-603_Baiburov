@@ -22,7 +22,7 @@ public class JDBConnection {
         try {
             //Подгрузка нужных нам драйверов для бд, настраивается в файле classDataBase
             classDB = new Properties();
-            classDB.load(new FileInputStream("C:\\Users\\Тимур\\Desktop\\11-502_Mardanov_homeworks\\Web-Project\\src\\main\\resources\\classDataBase"));
+            classDB.load(new FileInputStream("C:\\Users\\user\\Desktop\\11-603_Baiburov\\2k\\Java\\BaiburovSemsestrDB\\Web-Project\\src\\main\\resources\\classDataBase"));
             Class.forName(classDB.getProperty("driver"));
             System.out.print("Driver is ready");
 
@@ -68,7 +68,7 @@ public class JDBConnection {
     public boolean getSettings(){
         try {
             Properties properties = new Properties();
-            properties.load(new FileInputStream("C:\\Users\\Тимур\\Desktop\\11-502_Mardanov_homeworks\\Web-Project\\src\\main\\resources\\settings.properties"));
+            properties.load(new FileInputStream("C:\\Users\\user\\Desktop\\11-603_Baiburov\\2k\\Java\\BaiburovSemsestrDB\\Web-Project\\src\\main\\resources\\settings.properties"));
             setServer(properties.getProperty("server"));
             setPort(properties.getProperty("port"));
             setNameDB(properties.getProperty("nameDB"));

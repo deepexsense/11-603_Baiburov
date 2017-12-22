@@ -1,10 +1,3 @@
-<%--
-  Created by IntelliJ IDEA.
-  User: Тимур
-  Date: 10.12.2016
-  Time: 14:53
-  To change this template use File | Settings | File Templates.
---%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <div style="display: inline">
 <% if (request.getAttribute("ok") == null) {%>
@@ -14,7 +7,7 @@
         <h2>Add genre</h2>
     </div>
     <p>
-        <input type="text" name="name" class="input-block-level" id="addfilmfields" placeholder="Name">
+        <input type="text" name="name" class="input-block-level" id="addfilmfields" placeholder="Name" maxlength="10">
         <br>
         <button class="btn btn-large btn-primary" type="submit">Add</button>
             <% if (request.getAttribute("no")!=null) {%>

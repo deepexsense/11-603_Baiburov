@@ -1,6 +1,5 @@
 package ru.itis.inform.servlets;
 
-import com.sun.deploy.security.SessionCertStore;
 import ru.itis.inform.factories.DaoFactory;
 import ru.itis.inform.factories.ServiceFactory;
 import ru.itis.inform.models.FilmExistance;

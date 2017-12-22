@@ -1,16 +1,9 @@
-<%--
-Created by IntelliJ IDEA.
-User: Тимур
-Date: 16.10.2016
-Time: 5:50
-To change this template use File | Settings | File Templates.
---%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c1" uri="http://java.sun.com/jsp/jstl/core" %>
 
 <html>
 <body>
-<c1:set var="film_name" value="${film_name}" scope="request"/>
+<c1:set var="film_name" value="${film_name}" scope="request" />
 <c1:set var="film_date" value="${film_date}" scope="request"/>
 <c1:set var="film_description" value="${film_description}" scope="request"/>
 <c1:set var="film_url" value="${film_url}" scope="request"/>
@@ -30,31 +23,31 @@ To change this template use File | Settings | File Templates.
         <%}%>
         <h2>Add film</h2>
         <div id="datafilmforms">
-            <input type="text" name="name" class="input-block-level" id="addfilmfields" placeholder="Name" value="${film_name}">
+            <input type="text" name="name" class="input-block-level" id="addfilmfields" placeholder="Name" value="${film_name}" maxlength="10">
             <br>
-            <input type="text" name="producer" class="input-block-level" id="addfilmfields" placeholder="Producer" value="${film_producer}">
+            <input type="text" name="producer" class="input-block-level" id="addfilmfields" placeholder="Producer" value="${film_producer}" maxlength="10">
             <br>
-            <input type="text" name="studio" class="input-block-level" id="addfilmfields" placeholder="Studio" value="${film_studio}">
+            <input type="text" name="studio" class="input-block-level" id="addfilmfields" placeholder="Studio" value="${film_studio}" maxlength="10">
             <br>
-            <input type="date" name="date" class="input-block-level" id="addfilmfields" placeholder="Date" value="${film_date}">
+            <input type="date" name="date" class="input-block-level" id="addfilmfields" placeholder="Date" value="${film_date}" maxlength="10">
             <br>
             <input type="text" name="roles" class="input-block-level" id="addfilmfields"
-                   placeholder="Roles: Example: Role One,Role Two" value="${film_roles}">
+                   placeholder="Roles: Example: Role One,Role Two" value="${film_roles}" maxlength="10">
             <br>
-            <input type="text" name="genres" class="input-block-level" id="addfilmfields" placeholder="Genres" value="${film_genres}">
+            <input type="text" name="genres" class="input-block-level" id="addfilmfields" placeholder="Genres" value="${film_genres}" maxlength="10">
             <br>
             <input type="text" name="description" class="input-block-level" id="addfilmfields"
-                   placeholder="Description" value="${film_description}">
+                   placeholder="Description" value="${film_description}" maxlength="50">
             <br>
-            <input type="number" name="remark" class="input-block-level" id="addfilmfields" placeholder="Remark" value="${film_remark}">
+            <input type="number" name="remark" class="input-block-level" id="addfilmfields" placeholder="Remark" value="${film_remark}"maxlength="10">
             <br>
-            <input type="text" name="url" class="input-block-level" id="addfilmfields" placeholder="URL-image(700x400)" value="${film_url}">
+            <input type="text" name="url" class="input-block-level" id="addfilmfields" placeholder="URL-image(700x400)" value="${film_url}"maxlength="100">
             <br>
             <details>
                 <summary>Is available in library?</summary>
-                <input type="number" name="quantity" class="input-block-level"  placeholder="quantity" style="margin: 3px" value="${film_quantity}">
+                <input type="number" name="quantity" class="input-block-level"  placeholder="quantity" style="margin: 3px" value="${film_quantity}" maxlength="10">
                 <br>
-                <input type="number" name="price" class="input-block-level" placeholder="price" style="margin: 3px" value="${film_price}">
+                <input type="number" name="price" class="input-block-level" placeholder="price" style="margin: 3px" value="${film_price}" maxlength="10">
                 <br>
             </details>
             <%if (request.getAttribute("film_name")!=null){%>

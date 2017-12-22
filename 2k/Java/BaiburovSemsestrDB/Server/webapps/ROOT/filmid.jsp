@@ -2,13 +2,7 @@
 <%@ page import="ru.itis.inform.models.Film" %>
 <%@ page import="ru.itis.inform.models.Genre" %>
 <%@ page import="ru.itis.inform.models.Role" %>
-<%@ page import="ru.itis.inform.factories.ServiceFactory" %><%--
-  Created by IntelliJ IDEA.
-  User: Тимур
-  Date: 23.10.2016
-  Time: 23:07
-  To change this template use File | Settings | File Templates.
---%>
+<%@ page import="ru.itis.inform.factories.ServiceFactory" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 
 <%
@@ -64,7 +58,7 @@
             <form method="post" action="/film?id=<%=film.getId()%>">
                 <label for="namber">Write your remark(0-10):</label>
                 <br>
-                <input type="number" id ="namber" name = "remark">
+                <input type="number" id ="namber" name = "remark" maxlength="10">
                 <br>
                 <input type="submit" value="Send">
             </form>

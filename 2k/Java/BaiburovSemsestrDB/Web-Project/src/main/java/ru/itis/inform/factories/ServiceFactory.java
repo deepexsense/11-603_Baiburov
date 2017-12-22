@@ -20,7 +20,7 @@ public class ServiceFactory {
     private ServiceFactory() {
         properties = new Properties();
         try {
-            properties.load(new FileInputStream("C:\\Users\\Тимур\\Desktop\\11-502_Mardanov_homeworks\\Web-Project\\src\\main\\resources\\service.properties"));
+            properties.load(new FileInputStream("C:\\Users\\user\\Desktop\\11-603_Baiburov\\2k\\Java\\BaiburovSemsestrDB\\Web-Project\\src\\main\\resources\\service.properties"));
 
             //UserService
             String userService = properties.getProperty("userservice.class");

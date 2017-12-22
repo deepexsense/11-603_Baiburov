@@ -24,7 +24,7 @@ public class DaoFactory {
     private DaoFactory() {
         properties = new Properties();
         try {
-            properties.load(new FileInputStream("C:\\Users\\Тимур\\Desktop\\11-502_Mardanov_homeworks\\Web-Project\\src\\main\\resources\\dao.properties"));
+            properties.load(new FileInputStream("C:\\Users\\user\\Desktop\\11-603_Baiburov\\2k\\Java\\BaiburovSemsestrDB\\Web-Project\\src\\main\\resources\\dao.properties"));
 
             String commentsDaoImpl = properties.getProperty("commentdao.class");
             String filmExistanceDaoImpl = properties.getProperty("filmexistancedaoimpl.class");
