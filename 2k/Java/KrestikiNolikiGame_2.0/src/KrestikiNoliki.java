@@ -12,7 +12,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
 
-public class TicTacToe implements Runnable {
+public class KrestikiNoliki implements Runnable {
 
 	private String ip = "localhost";
 	private int port = 0;
@@ -62,7 +62,7 @@ public class TicTacToe implements Runnable {
 
 	private int[][] wins = new int[][] { { 0, 1, 2 }, { 3, 4, 5 }, { 6, 7, 8 }, { 0, 3, 6 }, { 1, 4, 7 }, { 2, 5, 8 }, { 0, 4, 8 }, { 2, 4, 6 } };
 
-	public TicTacToe() {
+	public KrestikiNoliki() {
 		System.out.println("Please input the IP: ");
 		ip = scanner.nextLine();
 		System.out.println("Please input the port: ");
@@ -80,7 +80,7 @@ public class TicTacToe implements Runnable {
 		if (!connect()) initializeServer();
 
 		frame = new JFrame();
-		frame.setTitle("Tic-Tac-Toe");
+		frame.setTitle("Крестики-Нолики");
 		frame.setContentPane(painter);
 		frame.setSize(WIDTH, HEIGHT);
 		frame.setLocationRelativeTo(null);
@@ -88,7 +88,7 @@ public class TicTacToe implements Runnable {
 		frame.setResizable(false);
 		frame.setVisible(true);
 
-		thread = new Thread(this, "TicTacToe");
+		thread = new Thread(this, "KrestikiNoliki");
 		thread.start();
 	}
 
@@ -283,7 +283,7 @@ public class TicTacToe implements Runnable {
 
 	@SuppressWarnings("unused")
 	public static void main(String[] args) {
-		TicTacToe ticTacToe = new TicTacToe();
+		KrestikiNoliki XO = new KrestikiNoliki();
 	}
 
 	private class Painter extends JPanel implements MouseListener {
