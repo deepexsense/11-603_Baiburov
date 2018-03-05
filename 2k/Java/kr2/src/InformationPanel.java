@@ -29,6 +29,7 @@ public class InformationPanel extends JPanel {
                             + response.getStatus());
                 }
 
+
                 String output = response.getEntity(String.class);
                 // String[] output = response.getEntity(String.);
                 System.out.println("\n -------");

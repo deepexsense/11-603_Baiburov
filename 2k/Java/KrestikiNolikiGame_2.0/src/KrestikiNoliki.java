@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Objects;
 import java.util.Scanner;
 
 public class KrestikiNoliki implements Runnable {
@@ -189,13 +190,13 @@ public class KrestikiNoliki implements Runnable {
 	private void checkForWin() {
 		for (int i = 0; i < wins.length; i++) {
 			if (circle) {
-				if (spaces[wins[i][0]] == "O" && spaces[wins[i][1]] == "O" && spaces[wins[i][2]] == "O") {
+				if (Objects.equals(spaces[wins[i][0]], "O") && Objects.equals(spaces[wins[i][1]], "O") && Objects.equals(spaces[wins[i][2]], "O")) {
 					firstSpot = wins[i][0];
 					secondSpot = wins[i][2];
 					won = true;
 				}
 			} else {
-				if (spaces[wins[i][0]] == "X" && spaces[wins[i][1]] == "X" && spaces[wins[i][2]] == "X") {
+				if (Objects.equals(spaces[wins[i][0]], "X") && Objects.equals(spaces[wins[i][1]], "X") && Objects.equals(spaces[wins[i][2]], "X")) {
 					firstSpot = wins[i][0];
 					secondSpot = wins[i][2];
 					won = true;
@@ -207,7 +208,7 @@ public class KrestikiNoliki implements Runnable {
 	private void checkForEnemyWin() {
 		for (int i = 0; i < wins.length; i++) {
 			if (circle) {
-				if (spaces[wins[i][0]] == "X" && spaces[wins[i][1]] == "X" && spaces[wins[i][2]] == "X") {
+				if (Objects.equals(spaces[wins[i][0]], "X") && Objects.equals(spaces[wins[i][1]], "X") && Objects.equals(spaces[wins[i][2]], "X")) {
 					firstSpot = wins[i][0];
 					secondSpot = wins[i][2];
 					enemyWon = true;

@@ -1,0 +1,25 @@
+users:
+
+audio:
+-title charField(30)
+-artist FK
+-year int
+-duration time
+
+artist:
+-name charField
+-city FK
+-year int
+
+playlist:
+-user FK
+-plName charField
+
+plAudio:
+-audio FK
+-playlist FK
+
+likes:
+-user FK
+-playlist FK
+-when latetime
